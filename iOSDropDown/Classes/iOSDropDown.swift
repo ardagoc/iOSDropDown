@@ -435,6 +435,7 @@ extension DropDown: UITableViewDataSource {
         cell?.textLabel?.numberOfLines = 0
         cell?.textLabel?.lineBreakMode = .byWordWrapping
         cell?.textLabel?.sizeToFit()
+
         return cell!
     }
 }
