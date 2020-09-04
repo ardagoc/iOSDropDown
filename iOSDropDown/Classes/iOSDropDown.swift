@@ -218,11 +218,17 @@ open class DropDown : UITextField{
 
         table.dataSource = self
         table.delegate = self
-        table.alpha = 0
-        table.separatorStyle = .none
-        table.layer.cornerRadius = 3
+        table.alpha = 1
+        table.separatorStyle = .singleLineEtched
+        table.layer.borderWidth = 1
+        table.layer.borderColor = UIColor(red: 153/255, green: 153/255, blue: 153/255, alpha: 1).cgColor
+        table.layer.cornerRadius = 0
         table.backgroundColor = rowBackgroundColor
-        table.rowHeight = rowHeight
+        table.estimatedRowHeight = rowHeight
+        table.rowHeight = UITableView.automaticDimension
+        table.showsVerticalScrollIndicator = true
+        table.indicatorStyle = .black
+        
         if scrollToSelectedIndex{
             if let selectedIndex = selectedIndex {
                 let indexPath = IndexPath(row: selectedIndex, section: 0)
@@ -240,25 +246,25 @@ open class DropDown : UITextField{
         }
         UIView.animate(withDuration: 0.0,
                        delay: 0,
-                       usingSpringWithDamping: 0.4,
-                       initialSpringVelocity: 0.1,
+                       usingSpringWithDamping: 0.0,
+                       initialSpringVelocity: 0.0,
                        options: .curveEaseInOut,
                        animations: { () -> Void in
-
+                        
                         self.table.frame = CGRect(x: self.pointToParent.x,
                                                   y: y,
                                                   width: self.frame.width,
                                                   height: self.tableheightX)
                         self.table.alpha = 1
                         self.shadow.frame = self.table.frame
-                        self.shadow.dropShadow()
+                        // self.shadow.dropShadow()
                         self.arrow.position = .up
-                       
-
+                        
+                        
         },
                        completion: { (finish) -> Void in
                         self.layoutIfNeeded()
-
+                        
         })
 
     }
@@ -268,15 +274,15 @@ open class DropDown : UITextField{
         TableWillDisappearCompletion()
         UIView.animate(withDuration: 0.0,
                        delay: 0.0,
-                       usingSpringWithDamping: 0.9,
-                       initialSpringVelocity: 0.1,
+                       usingSpringWithDamping: 0.0,
+                       initialSpringVelocity: 0.0,
                        options: .curveEaseInOut,
                        animations: { () -> Void in
                         self.table.frame = CGRect(x: self.pointToParent.x,
                                                   y: self.pointToParent.y+self.frame.height,
                                                   width: self.frame.width,
                                                   height: 0)
-                        self.shadow.alpha = 0
+                        self.shadow.alpha = 1
                         self.shadow.frame = self.table.frame
                         self.arrow.position = .down
         },
@@ -295,6 +301,7 @@ open class DropDown : UITextField{
         isSelected ?  hideList() : showList()
     }
     func reSizeTable() {
+
         if listHeight > rowHeight * CGFloat( dataArray.count) {
             self.tableheightX = rowHeight * CGFloat(dataArray.count)
         }else{
@@ -307,8 +314,8 @@ open class DropDown : UITextField{
         }
         UIView.animate(withDuration: 0.0,
                        delay: 0.0,
-                       usingSpringWithDamping: 0.9,
-                       initialSpringVelocity: 0.1,
+                       usingSpringWithDamping: 0.0,
+                       initialSpringVelocity: 0.0,
                        options: .curveEaseInOut,
                        animations: { () -> Void in
                         self.table.frame = CGRect(x: self.pointToParent.x,
@@ -316,7 +323,7 @@ open class DropDown : UITextField{
                                                   width: self.frame.width,
                                                   height: self.tableheightX)
                         self.shadow.frame = self.table.frame
-                        self.shadow.dropShadow()
+                      //  self.shadow.dropShadow()
 
         },
                        completion: { (didFinish) -> Void in
@@ -364,7 +371,11 @@ extension DropDown : UITextFieldDelegate {
     public func textFieldShouldBeginEditing(_ textField: UITextField) -> Bool {
         return isSearchEnable
     }
-
+    
+ /*   public func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
+        tableView.rowHeight = UITableView.automaticDimension
+    }
+*/
     public func textField(_ textField: UITextField, shouldChangeCharactersIn range: NSRange, replacementString string: String) -> Bool {
         if string != "" {
             self.searchText = self.text! + string
@@ -381,6 +392,14 @@ extension DropDown : UITextFieldDelegate {
 }
 ///MARK: UITableViewDataSource
 extension DropDown: UITableViewDataSource {
+    
+    public func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
+        return UITableView.automaticDimension
+    }
+    
+    public func tableView(_ tableView: UITableView, estimatedHeightForRowAt indexPath: IndexPath) -> CGFloat {
+        return rowHeight
+    }
 
     public func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         return dataArray.count
@@ -413,6 +432,9 @@ extension DropDown: UITableViewDataSource {
         cell!.selectionStyle = .none
         cell?.textLabel?.font = self.font
         cell?.textLabel?.textAlignment = self.textAlignment
+        cell?.textLabel?.numberOfLines = 0
+        cell?.textLabel?.lineBreakMode = .byWordWrapping
+        cell?.textLabel?.sizeToFit()
         return cell!
     }
 }
@@ -421,7 +443,7 @@ extension DropDown: UITableViewDelegate {
     public func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         selectedIndex = (indexPath as NSIndexPath).row
         let selectedText = self.dataArray[self.selectedIndex!]
-        tableView.cellForRow(at: indexPath)?.alpha = 0
+        tableView.cellForRow(at: indexPath)?.alpha = 1
         UIView.animate(withDuration: 0.0,
                        animations: { () -> Void in
                         tableView.cellForRow(at: indexPath)?.alpha = 1.0
@@ -532,10 +554,10 @@ extension UIView {
 
     func dropShadow(scale: Bool = true) {
         layer.masksToBounds = false
-        layer.shadowColor = UIColor.black.cgColor
-        layer.shadowOpacity = 0.5
-        layer.shadowOffset = CGSize(width: 1, height: 1)
-        layer.shadowRadius = 2
+        layer.shadowColor = UIColor.clear.cgColor
+        layer.shadowOpacity = 0
+        layer.shadowOffset = CGSize(width: 0, height: 0)
+        layer.shadowRadius = 0
         layer.shadowPath = UIBezierPath(rect: bounds).cgPath
         layer.shouldRasterize = true
         layer.rasterizationScale = scale ? UIScreen.main.scale : 1
