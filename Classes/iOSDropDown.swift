@@ -6,6 +6,7 @@
 //  Created by Jishnu Raj T on 26/04/18.
 //  Copyright © 2018 JRiOSdev. All rights reserved.
 //
+//  Custom Config for PAH App by Satnam
 import UIKit
 
 open class DropDown : UITextField{
@@ -14,12 +15,14 @@ open class DropDown : UITextField{
     var table : UITableView!
     var shadow : UIView!
     public  var selectedIndex: Int?
-
-
+    public var scrollToSelectedIndex:Bool = false
+    public var selectedTextColor: UIColor = UIColor(red: 2/255, green: 2/255, blue: 2/255, alpha: 1)
+    var defaultTextColor = UIColor(red: 2/255, green: 2/255, blue: 2/255, alpha: 1)
     //MARK: IBInspectable
 
     @IBInspectable public var rowHeight: CGFloat = 30
     @IBInspectable public var rowBackgroundColor: UIColor = .white
+    @IBInspectable public var rowTextColor: UIColor = UIColor(red: 49/255, green: 74/255, blue: 178/255, alpha: 1)
     @IBInspectable public var selectedRowColor: UIColor = .cyan
     @IBInspectable public var hideOptionsWhenSelect = true
     @IBInspectable  public var isSearchEnable: Bool = true {
@@ -55,10 +58,10 @@ open class DropDown : UITextField{
     fileprivate  var tableheightX: CGFloat = 100
     fileprivate  var dataArray = [String]()
     fileprivate  var imageArray = [String]()
-    fileprivate  var parentController:UIViewController?
+    fileprivate weak var parentController:UIViewController?
     fileprivate  var pointToParent = CGPoint(x: 0, y: 0)
     fileprivate var backgroundView = UIView()
-
+    fileprivate var keyboardHeight:CGFloat = 0
 
     public var optionArray = [String]() {
         didSet{
@@ -91,6 +94,21 @@ open class DropDown : UITextField{
             arrow.frame = CGRect(x: center.x - arrowSize/2, y: center.y - arrowSize/2, width: arrowSize, height: arrowSize)
         }
     }
+    @IBInspectable public var arrowColor: UIColor = .black {
+        didSet{
+            arrow.arrowColor = arrowColor
+        }
+    }
+    @IBInspectable public var checkMarkEnabled: Bool = true {
+        didSet{
+            
+        }
+    }
+    @IBInspectable public var handleKeyboard: Bool = true {
+        didSet{
+            
+        }
+    }
 
     // Init
     public override init(frame: CGRect) {
@@ -121,13 +139,38 @@ open class DropDown : UITextField{
         let arrowContainerView = UIView(frame: rightView.frame)
         self.rightView?.addSubview(arrowContainerView)
         let center = arrowContainerView.center
-        arrow = Arrow(origin: CGPoint(x: center.x - arrowSize/2,y: center.y - arrowSize/2),size: arrowSize)
+        arrow = Arrow(origin: CGPoint(x: center.x - arrowSize/2,y: center.y - arrowSize/2),size: arrowSize  )
         arrowContainerView.addSubview(arrow)
 
         self.backgroundView = UIView(frame: .zero)
         self.backgroundView.backgroundColor = .clear
         addGesture()
+        if isSearchEnable && handleKeyboard{
+            NotificationCenter.default.addObserver(forName: UIResponder.keyboardWillShowNotification, object: nil, queue: nil) { (notification) in
+                if self.isFirstResponder{
+                let userInfo:NSDictionary = notification.userInfo! as NSDictionary
+                    let keyboardFrame:NSValue = userInfo.value(forKey: UIResponder.keyboardFrameEndUserInfoKey) as! NSValue
+                let keyboardRectangle = keyboardFrame.cgRectValue
+                self.keyboardHeight = keyboardRectangle.height
+                    if !self.isSelected{
+                        self.showList()
+                    }
+                }
+              
+            }
+            NotificationCenter.default.addObserver(forName: UIResponder.keyboardWillHideNotification, object: nil, queue: nil) { (notification) in
+                if self.isFirstResponder{
+                self.keyboardHeight = 0
+                }
+            }
+        }
     }
+    
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+    }
+
+    
     fileprivate func addGesture (){
         let gesture =  UITapGestureRecognizer(target: self, action:  #selector(touchAction))
         if isSearchEnable{
@@ -157,9 +200,9 @@ open class DropDown : UITextField{
     public func showList() {
         if parentController == nil{
             parentController = self.parentViewController
-            backgroundView.frame = parentController?.view.frame ?? backgroundView.frame
-            pointToParent = getConvertedPoint(self, baseView: parentController?.view)
         }
+        backgroundView.frame = parentController?.view.frame ?? backgroundView.frame
+        pointToParent = getConvertedPoint(self, baseView: parentController?.view)
         parentController?.view.insertSubview(backgroundView, aboveSubview: self)
         TableWillAppearCompletion()
         if listHeight > rowHeight * CGFloat( dataArray.count) {
@@ -176,33 +219,53 @@ open class DropDown : UITextField{
 
         table.dataSource = self
         table.delegate = self
-        table.alpha = 0
-        table.separatorStyle = .none
-        table.layer.cornerRadius = 3
+        table.alpha = 1
+        table.separatorStyle = .singleLineEtched
+        table.layer.borderWidth = 1
+        table.layer.borderColor = UIColor(red: 153/255, green: 153/255, blue: 153/255, alpha: 1).cgColor
+        table.layer.cornerRadius = 0
         table.backgroundColor = rowBackgroundColor
-        table.rowHeight = rowHeight
+        table.estimatedRowHeight = rowHeight
+        table.rowHeight = UITableView.automaticDimension
+        table.showsVerticalScrollIndicator = true
+        table.indicatorStyle = .black
+        
+        if scrollToSelectedIndex{
+            if let selectedIndex = selectedIndex {
+                let indexPath = IndexPath(row: selectedIndex, section: 0)
+                self.table.scrollToRow(at: indexPath, at: .top, animated: true)
+                self.table.reloadData()
+            }
+        }
         parentController?.view.addSubview(shadow)
         parentController?.view.addSubview(table)
         self.isSelected = true
-        UIView.animate(withDuration: 0.9,
+        let height = (self.parentController?.view.frame.height ?? 0) - (self.pointToParent.y + self.frame.height + 5)
+        var y = self.pointToParent.y+self.frame.height+5
+        if height < (keyboardHeight+tableheightX){
+            y = self.pointToParent.y - tableheightX
+        }
+        UIView.animate(withDuration: 0.0,
                        delay: 0,
-                       usingSpringWithDamping: 0.4,
-                       initialSpringVelocity: 0.1,
+                       usingSpringWithDamping: 0.0,
+                       initialSpringVelocity: 0.0,
                        options: .curveEaseInOut,
                        animations: { () -> Void in
-
+                        
                         self.table.frame = CGRect(x: self.pointToParent.x,
-                                                  y: self.pointToParent.y+self.frame.height+5,
+                                                  y: y,
                                                   width: self.frame.width,
-                                                  height: self.tableheightX)
+                                                  height: self.tableheightX + 20)
                         self.table.alpha = 1
                         self.shadow.frame = self.table.frame
-                        self.shadow.dropShadow()
+                        // self.shadow.dropShadow()
                         self.arrow.position = .up
-
+                        
+                        
         },
                        completion: { (finish) -> Void in
-
+                        self.layoutIfNeeded()
+                        
         })
 
     }
@@ -210,17 +273,17 @@ open class DropDown : UITextField{
 
     public func hideList() {
         TableWillDisappearCompletion()
-        UIView.animate(withDuration: 1.0,
-                       delay: 0.4,
-                       usingSpringWithDamping: 0.9,
-                       initialSpringVelocity: 0.1,
+        UIView.animate(withDuration: 0.0,
+                       delay: 0.0,
+                       usingSpringWithDamping: 0.0,
+                       initialSpringVelocity: 0.0,
                        options: .curveEaseInOut,
                        animations: { () -> Void in
                         self.table.frame = CGRect(x: self.pointToParent.x,
                                                   y: self.pointToParent.y+self.frame.height,
                                                   width: self.frame.width,
                                                   height: 0)
-                        self.shadow.alpha = 0
+                        self.shadow.alpha = 1
                         self.shadow.frame = self.table.frame
                         self.arrow.position = .down
         },
@@ -239,26 +302,34 @@ open class DropDown : UITextField{
         isSelected ?  hideList() : showList()
     }
     func reSizeTable() {
+
         if listHeight > rowHeight * CGFloat( dataArray.count) {
             self.tableheightX = rowHeight * CGFloat(dataArray.count)
         }else{
             self.tableheightX = listHeight
         }
-        UIView.animate(withDuration: 0.2,
-                       delay: 0.1,
-                       usingSpringWithDamping: 0.9,
-                       initialSpringVelocity: 0.1,
+        let height = (self.parentController?.view.frame.height ?? 0) - (self.pointToParent.y + self.frame.height + 5)
+        var y = self.pointToParent.y+self.frame.height+5
+        if height < (keyboardHeight+tableheightX){
+            y = self.pointToParent.y - tableheightX
+        }
+        UIView.animate(withDuration: 0.0,
+                       delay: 0.0,
+                       usingSpringWithDamping: 0.0,
+                       initialSpringVelocity: 0.0,
                        options: .curveEaseInOut,
                        animations: { () -> Void in
                         self.table.frame = CGRect(x: self.pointToParent.x,
-                                                  y: self.pointToParent.y+self.frame.height+5,
+                                                  y: y,
                                                   width: self.frame.width,
                                                   height: self.tableheightX)
-
+                        self.shadow.frame = self.table.frame
+                      //  self.shadow.dropShadow()
 
         },
                        completion: { (didFinish) -> Void in
-                        self.shadow.layer.shadowPath = UIBezierPath(rect: self.table.bounds).cgPath
+                      //  self.shadow.layer.shadowPath = UIBezierPath(rect: self.table.bounds).cgPath
+                        self.layoutIfNeeded()
 
         })
     }
@@ -301,7 +372,11 @@ extension DropDown : UITextFieldDelegate {
     public func textFieldShouldBeginEditing(_ textField: UITextField) -> Bool {
         return isSearchEnable
     }
-
+    
+ /*   public func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
+        tableView.rowHeight = UITableView.automaticDimension
+    }
+*/
     public func textField(_ textField: UITextField, shouldChangeCharactersIn range: NSRange, replacementString string: String) -> Bool {
         if string != "" {
             self.searchText = self.text! + string
@@ -318,6 +393,14 @@ extension DropDown : UITextFieldDelegate {
 }
 ///MARK: UITableViewDataSource
 extension DropDown: UITableViewDataSource {
+    
+    public func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
+        return UITableView.automaticDimension
+    }
+    
+    public func tableView(_ tableView: UITableView, estimatedHeightForRowAt indexPath: IndexPath) -> CGFloat {
+        return rowHeight
+    }
 
     public func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         return dataArray.count
@@ -342,11 +425,18 @@ extension DropDown: UITableViewDataSource {
         if self.imageArray.count > indexPath.row {
             cell!.imageView!.image = UIImage(named: imageArray[indexPath.row])
         }
+        
+        cell!.textLabel!.textColor = rowTextColor
         cell!.textLabel!.text = "\(dataArray[indexPath.row])"
-        cell!.accessoryType = indexPath.row == selectedIndex ? .checkmark : .none
+        cell?.textLabel!.textColor = (indexPath.row == selectedIndex) ? selectedTextColor : defaultTextColor
+        cell!.accessoryType = (indexPath.row == selectedIndex) && checkMarkEnabled  ? .checkmark : .none
         cell!.selectionStyle = .none
         cell?.textLabel?.font = self.font
         cell?.textLabel?.textAlignment = self.textAlignment
+        cell?.textLabel?.numberOfLines = 0
+        cell?.textLabel?.lineBreakMode = .byWordWrapping
+        cell?.textLabel?.sizeToFit()
+
         return cell!
     }
 }
@@ -355,8 +445,8 @@ extension DropDown: UITableViewDelegate {
     public func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         selectedIndex = (indexPath as NSIndexPath).row
         let selectedText = self.dataArray[self.selectedIndex!]
-        tableView.cellForRow(at: indexPath)?.alpha = 0
-        UIView.animate(withDuration: 0.5,
+        tableView.cellForRow(at: indexPath)?.alpha = 1
+        UIView.animate(withDuration: 0.0,
                        animations: { () -> Void in
                         tableView.cellForRow(at: indexPath)?.alpha = 1.0
                         tableView.cellForRow(at: indexPath)?.backgroundColor = self.selectedRowColor
@@ -370,7 +460,7 @@ extension DropDown: UITableViewDelegate {
             touchAction()
             self.endEditing(true)
         }
-        if let selected = optionArray.index(where: {$0 == selectedText}) {
+        if let selected = optionArray.firstIndex(where: {$0 == selectedText}) {
             if let id = optionIds?[selected] {
                 didSelectCompletion(selectedText, selected , id )
             }else{
@@ -396,7 +486,13 @@ enum Position {
 }
 
 class Arrow: UIView {
-
+    let shapeLayer = CAShapeLayer()
+    var arrowColor:UIColor = .black {
+        didSet{
+            shapeLayer.fillColor = arrowColor.cgColor
+        }
+    }
+    
     var position: Position = .down {
         didSet{
             switch position {
@@ -419,7 +515,7 @@ class Arrow: UIView {
         }
     }
 
-    init(origin: CGPoint, size: CGFloat) {
+    init(origin: CGPoint, size: CGFloat ) {
         super.init(frame: CGRect(x: origin.x, y: origin.y, width: size, height: size))
     }
 
@@ -445,8 +541,9 @@ class Arrow: UIView {
         bezierPath.close()
 
         // Mask to path
-        let shapeLayer = CAShapeLayer()
         shapeLayer.path = bezierPath.cgPath
+      //  shapeLayer.fillColor = arrowColor.cgColor
+       
         if #available(iOS 12.0, *) {
             self.layer.addSublayer (shapeLayer)
         } else {
@@ -459,19 +556,15 @@ extension UIView {
 
     func dropShadow(scale: Bool = true) {
         layer.masksToBounds = false
-        layer.shadowColor = UIColor.black.cgColor
-        layer.shadowOpacity = 0.5
-        layer.shadowOffset = CGSize(width: 1, height: 1)
-        layer.shadowRadius = 2
+        layer.shadowColor = UIColor.clear.cgColor
+        layer.shadowOpacity = 0
+        layer.shadowOffset = CGSize(width: 0, height: 0)
+        layer.shadowRadius = 0
         layer.shadowPath = UIBezierPath(rect: bounds).cgPath
         layer.shouldRasterize = true
         layer.rasterizationScale = scale ? UIScreen.main.scale : 1
     }
 
-
-}
-
-extension UIView {
     var parentViewController: UIViewController? {
         var parentResponder: UIResponder? = self
         while parentResponder != nil {
