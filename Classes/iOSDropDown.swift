@@ -6,7 +6,6 @@
 //  Created by Jishnu Raj T on 26/04/18.
 //  Copyright © 2018 JRiOSdev. All rights reserved.
 //
-//  Custom Config for PAH App by Satnam
 import UIKit
 
 open class DropDown : UITextField{
@@ -206,9 +205,9 @@ open class DropDown : UITextField{
         parentController?.view.insertSubview(backgroundView, aboveSubview: self)
         TableWillAppearCompletion()
         if listHeight > rowHeight * CGFloat( dataArray.count) {
-            self.tableheightX = rowHeight * CGFloat(dataArray.count)
+            self.tableheightX = rowHeight * CGFloat(dataArray.count) + 20
         }else{
-            self.tableheightX = listHeight
+            self.tableheightX = listHeight + 20
         }
         table = UITableView(frame: CGRect(x: pointToParent.x ,
                                           y: pointToParent.y + self.frame.height ,
@@ -255,7 +254,7 @@ open class DropDown : UITextField{
                         self.table.frame = CGRect(x: self.pointToParent.x,
                                                   y: y,
                                                   width: self.frame.width,
-                                                  height: self.tableheightX + 20)
+                                                  height: self.tableheightX)
                         self.table.alpha = 1
                         self.shadow.frame = self.table.frame
                         // self.shadow.dropShadow()
