@@ -219,7 +219,7 @@ open class DropDown : UITextField{
         table.dataSource = self
         table.delegate = self
         table.alpha = 1
-        table.separatorStyle = .singleLineEtched
+        table.separatorStyle = .none
         table.layer.borderWidth = 1
         table.layer.borderColor = UIColor(red: 153/255, green: 153/255, blue: 153/255, alpha: 1).cgColor
         table.layer.cornerRadius = 0
